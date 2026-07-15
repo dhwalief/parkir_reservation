@@ -8,7 +8,7 @@ export interface IParkingLocation extends Document {
   radius_meters: number;
   location: {
     type: string;
-    coordinates: number[]; // [longitude, latitude]
+    coordinates: number[];
   };
 }
 

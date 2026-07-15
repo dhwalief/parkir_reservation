@@ -69,7 +69,7 @@ async function loadHistory() {
       let actionBtn = '';
       let cardClass = 'bg-surface border-outline-variant/30';
       
-      if(r.status === 'Active') {
+      if(r.status === 'active_reservation') {
         badge = '<span class="px-2 py-1 bg-primary text-on-primary rounded-md text-xs font-bold animate-pulse">AKTIF</span>';
         actionBtn = `<a href="/ticket/${r._id}" class="mt-4 block text-center bg-primary text-on-primary font-bold py-2 rounded-xl shadow-md hover:bg-primary/90 transition-colors">Tampilkan Karcis QR</a>`;
         cardClass = 'bg-primary-container/10 border-primary/50 shadow-md border-2';

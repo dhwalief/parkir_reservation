@@ -110,7 +110,7 @@ router.get('/history', async (req, res) => {
 
     const reservations = await Reservation.find({
       userId: user._id,
-      status: { $in: ['Occupied', 'cancelled', 'expired'] }
+      status: { $in: ['active_reservation', 'Occupied', 'cancelled', 'expired'] }
     })
     .populate('locationId')
     .populate('zoneId')
