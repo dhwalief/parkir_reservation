@@ -53,6 +53,7 @@ const seedDB = async () => {
       { locationId: loc2._id, name: 'Gedung Parkir Lt 1', total_capacity: 30, price_per_hour: 4000 }
     ]);
 
+
     // Create Location 3 (Plaza Senayan)
     const loc3 = await ParkingLocation.create({
       name: 'Mall Panakukkan',
