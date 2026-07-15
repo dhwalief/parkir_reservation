@@ -23,16 +23,13 @@ jobs:
             case "$SAFE_BRANCH" in
               "main")
                 PORT_APP=3000
-                PORT_DB=27017
                 ;;
               "development")
                 PORT_APP=3001
-                PORT_DB=27018
                 ;;
               *)
                 # Untuk branch fitur lainnya
                 PORT_APP=3002
-                PORT_DB=27019
                 ;;
             esac
 
@@ -78,8 +75,6 @@ jobs:
                 image: mongo:latest
                 container_name: parkir-db-${SAFE_BRANCH}
                 restart: unless-stopped
-                ports:
-                  - "${PORT_DB}:27017"
 
               app:
                 build:
