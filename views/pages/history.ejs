@@ -47,7 +47,7 @@ async function loadHistory() {
     const res = await axios.get('/api/reservations/history?phoneNumber=' + encodeURIComponent(phone));
     const records = res.data;
     
-    const logoutBtn = '<button onclick="localStorage.removeItem(\\\'parkir_phone\\\'); location.reload();" class="text-error text-label-sm font-bold bg-error-container/30 px-3 py-1 rounded-full hover:bg-error-container transition-colors">Ubah Nomor</button>';
+    const logoutBtn = `<button onclick="localStorage.removeItem('parkir_phone'); location.reload();" class="text-error text-label-sm font-bold bg-error-container/30 px-3 py-1 rounded-full hover:bg-error-container transition-colors">Ubah Nomor</button>`;
     
     if(records.length === 0) {
       document.getElementById('history-container').innerHTML = `

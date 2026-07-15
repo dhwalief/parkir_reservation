@@ -1,54 +1,181 @@
 <%- include('../partials/header') %>
-<div class="max-w-md mx-auto">
-  <h1 class="text-headline-md mb-6">Simulator Scanner Gerbang</h1>
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+
+<div class="max-w-xl mx-auto py-8 px-4">
+  <div class="text-center mb-8">
+    <h1 class="text-headline-md font-extrabold tracking-tight mb-2">Scanner Gerbang</h1>
+    <p class="text-body-md text-on-surface-variant">Pindai kode QR pengunjung untuk membuka palang parkir.</p>
+  </div>
   
-  <div class="bg-surface p-6 rounded-2xl shadow-sm border border-outline-variant">
-    <div class="mb-4">
-      <label class="block text-label-md font-bold mb-2">Location ID Gerbang Ini</label>
-      <input type="text" id="gate-location" class="w-full px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl font-mono text-sm" placeholder="Contoh: 64b8f... (ID Gedung A)">
-      <p class="text-body-sm text-on-surface-variant mt-2">Dalam produksi, ID ini tertanam statis di perangkat IoT/kamera gerbang.</p>
+  <div class="bg-surface p-6 md:p-8 rounded-3xl shadow-xl shadow-slate-200/50 border border-surface-container-high relative overflow-hidden">
+    
+    <!-- Gate Location Selector -->
+    <div class="mb-6 relative z-10">
+      <label class="block text-label-md font-bold mb-2 text-on-surface">Pilih Lokasi Gerbang (Kamera Ini)</label>
+      <select id="gate-location" class="w-full px-5 py-4 bg-surface-dim border border-outline-variant rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/40 font-bold text-on-surface appearance-none cursor-pointer">
+        <option value="">Memuat gedung...</option>
+      </select>
     </div>
 
-    <div class="mb-6">
-      <label class="block text-label-md font-bold mb-2">Hasil Scan QR (Reservation ID)</label>
-      <input type="text" id="gate-qr" class="w-full px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl font-mono text-sm" placeholder="Teks QR dari HP Pengguna">
+    <!-- Scanner Viewfinder -->
+    <div id="scanner-container" class="hidden mb-6">
+      <div class="rounded-2xl overflow-hidden border-2 border-primary/20 relative bg-black">
+        <div id="reader" width="100%"></div>
+      </div>
+      <p class="text-center mt-3 text-sm text-on-surface-variant">Arahkan kamera ke layar HP pengunjung</p>
     </div>
 
-    <button onclick="simulateScan()" class="w-full bg-primary text-on-primary py-4 rounded-xl font-bold text-title-md shadow-md active:scale-95 transition-transform">
-      SIMULASIKAN SCAN
+    <button id="btn-start" onclick="startScanner()" class="w-full bg-primary text-on-primary py-4 rounded-full font-bold shadow-md shadow-blue-500/30 active:scale-95 transition-all text-lg mb-4">
+      Nyalakan Kamera Scanner
+    </button>
+    <button id="btn-stop" onclick="stopScanner()" class="hidden w-full bg-error-container text-error hover:bg-error hover:text-white py-4 rounded-full font-bold transition-colors text-lg mb-4">
+      Matikan Kamera
     </button>
 
-    <div id="gate-result" class="mt-6 hidden rounded-xl p-4 text-center font-bold text-title-md"></div>
+    <!-- Result Display -->
+    <div id="gate-result" class="hidden rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all">
+      <div id="res-icon" class="text-4xl mb-2"></div>
+      <div id="res-text" class="text-title-md font-bold"></div>
+    </div>
   </div>
 </div>
 
-<script>
-async function simulateScan() {
-  const locId = document.getElementById('gate-location').value.trim();
-  const resId = document.getElementById('gate-qr').value.trim();
-  const resultEl = document.getElementById('gate-result');
+<style>
+/* Override default html5-qrcode styles to match our design */
+#reader__dashboard_section_csr button {
+  background: var(--color-surface-dim);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin: 0.25rem;
+}
+#reader__dashboard_section_swaplink {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+}
+#reader video {
+  border-radius: 1rem;
+}
+</style>
 
-  if(!locId || !resId) {
-    alert("Isi Location ID dan QR Text");
+<script>
+let html5QrcodeScanner;
+let isProcessing = false;
+
+async function loadLocations() {
+  try {
+    const res = await axios.get('/api/locations');
+    const select = document.getElementById('gate-location');
+    select.innerHTML = '<option value="">-- Silakan Pilih Lokasi Gerbang --</option>';
+    res.data.forEach(loc => {
+      select.innerHTML += `<option value="${loc._id}">${loc.name}</option>`;
+    });
+    
+    // Auto-select if a locationId is passed in URL (e.g. for kiosk mode)
+    const urlParams = new URLSearchParams(window.location.search);
+    const locId = urlParams.get('locationId');
+    if (locId) {
+      select.value = locId;
+    }
+  } catch (e) {
+    document.getElementById('gate-location').innerHTML = '<option value="">Gagal memuat gedung</option>';
+  }
+}
+loadLocations();
+
+function startScanner() {
+  const locId = document.getElementById('gate-location').value;
+  if (!locId) {
+    alert("Mohon pilih Lokasi Gerbang terlebih dahulu!");
     return;
   }
 
-  resultEl.classList.remove('hidden', 'bg-error-container', 'text-on-error-container', 'bg-primary-container', 'text-on-primary-container');
-  resultEl.innerHTML = "Memproses...";
+  document.getElementById('btn-start').classList.add('hidden');
+  document.getElementById('btn-stop').classList.remove('hidden');
+  document.getElementById('scanner-container').classList.remove('hidden');
+  document.getElementById('gate-result').classList.add('hidden');
+
+  html5QrcodeScanner = new Html5Qrcode("reader");
+  const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+  html5QrcodeScanner.start(
+    { facingMode: "environment" },
+    config,
+    onScanSuccess,
+    onScanFailure
+  ).catch(err => {
+    alert("Gagal mengakses kamera. Pastikan memberikan izin akses.");
+    stopScanner();
+  });
+}
+
+function stopScanner() {
+  if (html5QrcodeScanner) {
+    html5QrcodeScanner.stop().then(() => {
+      html5QrcodeScanner.clear();
+    }).catch(e => console.log(e));
+  }
+  document.getElementById('btn-start').classList.remove('hidden');
+  document.getElementById('btn-stop').classList.add('hidden');
+  document.getElementById('scanner-container').classList.add('hidden');
+}
+
+async function onScanSuccess(decodedText, decodedResult) {
+  if (isProcessing) return; // Prevent double scan
+  
+  const locId = document.getElementById('gate-location').value;
+  if (!locId) return;
+
+  isProcessing = true;
+  stopScanner(); // Automatically stop the camera once a QR is captured
+
+  const resultEl = document.getElementById('gate-result');
+  const resIcon = document.getElementById('res-icon');
+  const resText = document.getElementById('res-text');
+
+  resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-surface-dim animate-pulse';
+  resIcon.innerHTML = '⏳';
+  resText.innerHTML = 'Memvalidasi...';
+  resText.className = 'text-title-md font-bold text-on-surface-variant';
   resultEl.classList.remove('hidden');
 
   try {
-    const res = await axios.post('/api/gate/scan', {
-      locationId: locId,
-      reservationId: resId
+    const res = await axios.post('/api/gate/check-in', {
+      qrCodeData: decodedText,
+      gateLocationId: locId
     });
     
-    resultEl.classList.add('bg-primary-container', 'text-on-primary-container');
-    resultEl.innerHTML = "✅ " + res.data.message;
+    // SUCCESS
+    resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-primary-container text-on-primary-container shadow-inner border border-primary/20 scale-105';
+    resIcon.innerHTML = '✅';
+    resText.innerHTML = res.data.message;
+    resText.className = 'text-title-md font-bold';
+    
+    // Auto restart scanner after 4 seconds
+    setTimeout(() => {
+      isProcessing = false;
+      startScanner();
+    }, 4000);
+
   } catch(e) {
-    resultEl.classList.add('bg-error-container', 'text-on-error-container');
-    resultEl.innerHTML = "❌ " + (e.response?.data?.error || "Terjadi kesalahan sistem");
+    // FAILED
+    resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-error-container text-on-error-container shadow-inner border border-error/20 scale-105';
+    resIcon.innerHTML = '❌';
+    resText.innerHTML = e.response?.data?.error || "Gagal memvalidasi QR Code";
+    resText.className = 'text-title-md font-bold';
+    
+    setTimeout(() => {
+      isProcessing = false;
+      startScanner();
+    }, 4000);
   }
+}
+
+function onScanFailure(error) {
+  // Ignored. Continuously fails until a QR is found.
 }
 </script>
 <%- include('../partials/footer') %>

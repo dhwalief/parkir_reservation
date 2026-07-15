@@ -38,12 +38,13 @@
 
 <script>
 const reservationId = '<%= reservation._id %>';
+const qrCodeData = '<%= reservation.qrCodeData %>';
 const status = '<%= reservation.status %>';
 const expiresAt = new Date('<%= reservation.reservationExpiresAt %>').getTime();
 
 // Generate QR Code
 new QRCode(document.getElementById('qr-canvas'), {
-  text: reservationId,
+  text: qrCodeData,
   width: 200,
   height: 200,
   colorDark: '#000000',
