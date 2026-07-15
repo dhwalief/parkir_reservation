@@ -66,17 +66,28 @@ async function loadHistory() {
                 
     records.forEach(r => {
       let badge = '';
-      if(r.status === 'Occupied') badge = '<span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-md text-xs font-bold">SELESAI</span>';
+      let actionBtn = '';
+      let cardClass = 'bg-surface border-outline-variant/30';
+      
+      if(r.status === 'Active') {
+        badge = '<span class="px-2 py-1 bg-primary text-on-primary rounded-md text-xs font-bold animate-pulse">AKTIF</span>';
+        actionBtn = `<a href="/ticket/${r._id}" class="mt-4 block text-center bg-primary text-on-primary font-bold py-2 rounded-xl shadow-md hover:bg-primary/90 transition-colors">Tampilkan Karcis QR</a>`;
+        cardClass = 'bg-primary-container/10 border-primary/50 shadow-md border-2';
+      }
+      else if(r.status === 'Occupied') badge = '<span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-md text-xs font-bold">SELESAI</span>';
       else if(r.status === 'cancelled') badge = '<span class="px-2 py-1 bg-error-container text-on-error-container rounded-md text-xs font-bold">DIBATALKAN</span>';
       else badge = '<span class="px-2 py-1 bg-surface-dim text-on-surface-variant rounded-md text-xs font-bold">KEDALUWARSA</span>';
 
       html += `
-        <div class="bg-surface p-5 rounded-2xl border border-outline-variant/30 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
-          <div>
-            <h4 class="font-bold text-title-md">${r.locationId?.name || 'Unknown'} - ${r.zoneId?.name || ''}</h4>
-            <p class="text-body-sm text-on-surface-variant mt-1">Plat: <span class="font-mono bg-surface-dim px-1.5 py-0.5 rounded text-on-surface">${r.licensePlate}</span> &bull; ${new Date(r.createdAt).toLocaleDateString('id-ID')}</p>
+        <div class="${cardClass} p-5 rounded-2xl border flex flex-col hover:shadow-lg transition-shadow">
+          <div class="flex justify-between items-center">
+            <div>
+              <h4 class="font-bold text-title-md">${r.locationId?.name || 'Unknown'} - ${r.zoneId?.name || ''}</h4>
+              <p class="text-body-sm text-on-surface-variant mt-1">Plat: <span class="font-mono bg-surface-dim px-1.5 py-0.5 rounded text-on-surface">${r.licensePlate}</span> &bull; ${new Date(r.createdAt).toLocaleDateString('id-ID')}</p>
+            </div>
+            <div>${badge}</div>
           </div>
-          <div>${badge}</div>
+          ${actionBtn}
         </div>
       `;
     });
