@@ -98,7 +98,10 @@ function startScanner() {
   document.getElementById('scanner-container').classList.remove('hidden');
   document.getElementById('gate-result').classList.add('hidden');
 
-  html5QrcodeScanner = new Html5Qrcode("reader");
+  if (!html5QrcodeScanner) {
+    html5QrcodeScanner = new Html5Qrcode("reader");
+  }
+
   const config = { fps: 10, qrbox: { width: 250, height: 250 } };
 
   html5QrcodeScanner.start(
@@ -114,13 +117,21 @@ function startScanner() {
 
 function stopScanner() {
   if (html5QrcodeScanner) {
-    html5QrcodeScanner.stop().then(() => {
+    const state = html5QrcodeScanner.getState();
+    // State 2: SCANNING, State 3: PAUSED
+    if (state === 2 || state === 3) {
+      html5QrcodeScanner.stop().then(() => {
+        html5QrcodeScanner.clear();
+      }).catch(e => console.log("Stop error:", e));
+    } else {
       html5QrcodeScanner.clear();
-    }).catch(e => console.log(e));
+    }
   }
   document.getElementById('btn-start').classList.remove('hidden');
   document.getElementById('btn-stop').classList.add('hidden');
   document.getElementById('scanner-container').classList.add('hidden');
+  document.getElementById('gate-result').classList.add('hidden');
+  isProcessing = false;
 }
 
 async function onScanSuccess(decodedText, decodedResult) {
@@ -130,13 +141,17 @@ async function onScanSuccess(decodedText, decodedResult) {
   if (!locId) return;
 
   isProcessing = true;
-  stopScanner(); // Automatically stop the camera once a QR is captured
+  
+  // Pause scanning instead of turning off camera completely
+  if (html5QrcodeScanner && html5QrcodeScanner.getState() === 2) {
+    html5QrcodeScanner.pause();
+  }
 
   const resultEl = document.getElementById('gate-result');
   const resIcon = document.getElementById('res-icon');
   const resText = document.getElementById('res-text');
 
-  resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-surface-dim animate-pulse';
+  resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-surface-dim animate-pulse mb-6';
   resIcon.innerHTML = '⏳';
   resText.innerHTML = 'Memvalidasi...';
   resText.className = 'text-title-md font-bold text-on-surface-variant';
@@ -149,28 +164,34 @@ async function onScanSuccess(decodedText, decodedResult) {
     });
     
     // SUCCESS
-    resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-primary-container text-on-primary-container shadow-inner border border-primary/20 scale-105';
+    resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-primary-container text-on-primary-container shadow-inner border border-primary/20 scale-105 mb-6';
     resIcon.innerHTML = '✅';
     resText.innerHTML = res.data.message;
     resText.className = 'text-title-md font-bold';
     
-    // Auto restart scanner after 4 seconds
+    // Resume scanner after 3 seconds
     setTimeout(() => {
+      if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) {
+        html5QrcodeScanner.resume();
+      }
+      resultEl.classList.add('hidden');
       isProcessing = false;
-      startScanner();
-    }, 4000);
+    }, 3000);
 
   } catch(e) {
     // FAILED
-    resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-error-container text-on-error-container shadow-inner border border-error/20 scale-105';
+    resultEl.className = 'rounded-2xl p-5 text-center flex flex-col items-center justify-center min-h-[120px] transition-all bg-error-container text-on-error-container shadow-inner border border-error/20 scale-105 mb-6';
     resIcon.innerHTML = '❌';
     resText.innerHTML = e.response?.data?.error || "Gagal memvalidasi QR Code";
     resText.className = 'text-title-md font-bold';
     
     setTimeout(() => {
+      if (html5QrcodeScanner && html5QrcodeScanner.getState() === 3) {
+        html5QrcodeScanner.resume();
+      }
+      resultEl.classList.add('hidden');
       isProcessing = false;
-      startScanner();
-    }, 4000);
+    }, 3000);
   }
 }
 

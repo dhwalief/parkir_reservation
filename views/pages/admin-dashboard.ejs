@@ -1,4 +1,6 @@
 <%- include('../partials/header') %>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <div class="mb-8 flex justify-between items-end">
   <div>
@@ -35,8 +37,21 @@
 <!-- TAB: LOCATIONS -->
 <div id="tab-locations" class="tab-content hidden animate-fade-in space-y-8">
   <!-- Form Tambah Lokasi (Sama dengan input pencarian Home) -->
+  <!-- Form Tambah Lokasi -->
   <div class="bg-surface rounded-2xl shadow-xl shadow-slate-200/50 p-6 border border-surface-container-high">
     <h3 class="text-title-lg font-bold mb-4 text-on-surface">Tambah Gedung Baru</h3>
+    
+    <!-- OSM Map Picker -->
+    <div class="mb-6">
+      <div class="flex gap-2 mb-2">
+        <input type="text" id="map-search" placeholder="Cari nama lokasi (Mis: Monas, Jakarta)..." class="flex-1 px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:outline-none focus:ring-2 focus:ring-primary/40 font-bold text-on-surface text-sm">
+        <button onclick="searchMap()" class="px-5 py-3 bg-secondary text-on-secondary font-bold rounded-xl shadow-sm hover:shadow-md transition-all text-sm shrink-0">Cari Peta</button>
+      </div>
+      <!-- z-index dipastikan agar tooltip leaflet tidak tertutup -->
+      <div id="mapPicker" class="w-full h-[350px] rounded-xl border border-outline-variant z-10"></div>
+      <p class="text-xs text-on-surface-variant mt-2">*Klik lokasi pada peta untuk mengisi otomatis form Latitude & Longitude di bawah.</p>
+    </div>
+
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       <input type="text" id="loc-name" placeholder="Nama Gedung (Mis: Mall ABC)" class="w-full px-4 py-4 bg-surface-dim border border-outline-variant rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-body-lg">
       <input type="text" id="loc-address" placeholder="Alamat Lengkap" class="w-full px-4 py-4 bg-surface-dim border border-outline-variant rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary transition-all text-body-lg">
@@ -94,8 +109,62 @@ function switchTab(tabId) {
   }
 
   if(tabId === 'tab-home') loadStats();
-  if(tabId === 'tab-locations') loadLocations();
+  if(tabId === 'tab-locations') {
+    loadLocations();
+    setTimeout(() => {
+      initMap();
+      if(map) map.invalidateSize();
+    }, 100);
+  }
   if(tabId === 'tab-zones') loadZones();
+}
+
+// ================= OSM LEAFLET MAP =================
+let map, marker;
+function initMap() {
+  if (map) return; // Prevent double initialization
+  
+  // Default view: Jakarta
+  map = L.map('mapPicker').setView([-6.2088, 106.8456], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+  }).addTo(map);
+
+  map.on('click', function(e) {
+    const lat = e.latlng.lat.toFixed(6);
+    const lng = e.latlng.lng.toFixed(6);
+    
+    if (marker) map.removeLayer(marker);
+    marker = L.marker([lat, lng]).addTo(map);
+    
+    document.getElementById('loc-lat').value = lat;
+    document.getElementById('loc-lng').value = lng;
+    
+    // Reverse Geocoding (Autofill Address if empty)
+    axios.get(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`)
+      .then(res => {
+         if(res.data && res.data.display_name && !document.getElementById('loc-address').value) {
+            document.getElementById('loc-address').value = res.data.display_name;
+         }
+      }).catch(e => console.warn("Geocoding failed"));
+  });
+}
+
+async function searchMap() {
+  const query = document.getElementById('map-search').value.trim();
+  if(!query) return;
+  try {
+    const res = await axios.get(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    if(res.data && res.data.length > 0) {
+      const lat = parseFloat(res.data[0].lat);
+      const lon = parseFloat(res.data[0].lon);
+      map.flyTo([lat, lon], 16);
+    } else {
+      alert("Lokasi tidak ditemukan di OpenStreetMap.");
+    }
+  } catch(e) {
+    alert("Gagal mencari lokasi.");
+  }
 }
 
 // ================= API CALLS =================
