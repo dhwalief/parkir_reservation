@@ -38,11 +38,11 @@ jobs:
 
             export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
 
-            git config --global --add safe.directory /opt/NyewaParkiran
+            git config --global --add safe.directory ~/NyewaParkiran
 
-            # Pastikan folder ada
-            mkdir -p /opt/NyewaParkiran
-            cd /opt/NyewaParkiran
+            # Pastikan folder ada dan set permission-nya
+            mkdir -p ~/NyewaParkiran
+            cd ~/NyewaParkiran
             
             # Reset dan Clone jika belum ada (atau set-url jika ada)
             if [ ! -d ".git" ]; then
