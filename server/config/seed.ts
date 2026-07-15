@@ -53,6 +53,19 @@ const seedDB = async () => {
       { locationId: loc2._id, name: 'Gedung Parkir Lt 1', total_capacity: 30, price_per_hour: 4000 }
     ]);
 
+    // Create Location 3 (Plaza Senayan)
+    const loc3 = await ParkingLocation.create({
+      name: 'Mall Panakukkan',
+      address: 'Jl. Boulevard No.3, Masale, Kec. Panakkukang, Kota Makassar, Sulawesi Selatan',
+      description: 'Pusat perbelanjaan eksklusif.',
+      location: { type: 'Point', coordinates: [-5.1357589, 4037958] }
+    });
+
+    await ParkingZone.insertMany([
+      { locationId: loc3._id, name: 'Area Terbuka (Timur)', total_capacity: 100, price_per_hour: 5000 },
+      { locationId: loc3._id, name: 'Gedung Parkir Lt 1', total_capacity: 30, price_per_hour: 4000 }
+    ]);
+
     console.log('Seed success.');
     await mongoose.connection.close();
     process.exit(0);

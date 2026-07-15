@@ -1,0 +1,95 @@
+<%- include('../partials/header') %>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+
+<div class="flex flex-col items-center justify-center min-h-[70vh]">
+  <div class="bg-surface p-8 rounded-3xl shadow-2xl max-w-sm w-full border border-outline-variant/30 relative overflow-hidden">
+    <!-- Status Banner -->
+    <div id="ticket-status-banner" class="absolute top-0 left-0 right-0 py-2 text-center text-label-md font-bold text-white <%= reservation.status === 'active_reservation' ? 'bg-primary' : 'bg-error' %>">
+      <%= reservation.status === 'active_reservation' ? 'TIKET AKTIF' : (reservation.status === 'Occupied' ? 'SUDAH DIGUNAKAN' : 'KEDALUWARSA') %>
+    </div>
+    
+    <div class="mt-8 text-center">
+      <h2 class="text-headline-sm font-bold text-on-surface mb-1"><%= reservation.license_plate %></h2>
+      <p class="text-body-md text-on-surface-variant"><%= reservation.locationId.name %> - <%= reservation.zoneId.name %></p>
+    </div>
+
+    <div class="my-8 flex justify-center bg-white p-4 rounded-xl">
+      <div id="qr-canvas"></div>
+    </div>
+
+    <div class="text-center mb-6">
+      <p class="text-label-md text-on-surface-variant uppercase tracking-wider mb-1">Sisa Waktu Check-In</p>
+      <div id="ticket-timer" class="text-display-md font-black font-mono <%= reservation.status === 'active_reservation' ? 'text-on-surface' : 'text-error' %>">
+        --:--
+      </div>
+    </div>
+
+    <% if(reservation.status === 'active_reservation') { %>
+      <button onclick="reportFull()" class="w-full bg-error-container text-on-error-container hover:bg-error hover:text-white py-3 rounded-xl font-bold transition-colors">
+        Lapor Lapangan Penuh
+      </button>
+    <% } else { %>
+      <a href="/" class="block w-full text-center bg-surface-dim text-on-surface hover:bg-surface-variant py-3 rounded-xl font-bold transition-colors">
+        Kembali ke Beranda
+      </a>
+    <% } %>
+  </div>
+</div>
+
+<script>
+const reservationId = '<%= reservation._id %>';
+const status = '<%= reservation.status %>';
+const expiresAt = new Date('<%= reservation.reservationExpiresAt %>').getTime();
+
+// Generate QR Code
+new QRCode(document.getElementById('qr-canvas'), {
+  text: reservationId,
+  width: 200,
+  height: 200,
+  colorDark: '#000000',
+  colorLight: '#ffffff'
+});
+
+// Timer Logic
+if (status === 'active_reservation') {
+  const timerEl = document.getElementById('ticket-timer');
+  const banner = document.getElementById('ticket-status-banner');
+  
+  const intv = setInterval(() => {
+    const now = new Date().getTime();
+    const distance = expiresAt - now;
+
+    if (distance <= 0) {
+      clearInterval(intv);
+      timerEl.innerHTML = "00:00";
+      timerEl.classList.add('text-error');
+      banner.className = 'absolute top-0 left-0 right-0 py-2 text-center text-label-md font-bold text-white bg-error';
+      banner.innerText = 'KEDALUWARSA';
+      setTimeout(() => location.reload(), 2000);
+      return;
+    }
+
+    const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+    timerEl.innerHTML = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }, 1000);
+} else if (status === 'Occupied') {
+  document.getElementById('ticket-timer').innerHTML = "SELESAI";
+  document.getElementById('ticket-timer').classList.replace('text-error', 'text-secondary');
+} else {
+  document.getElementById('ticket-timer').innerHTML = "00:00";
+}
+
+async function reportFull() {
+  if(confirm("Apakah Anda yakin lapangan benar-benar penuh? Laporan palsu dapat menangguhkan akun Anda.")) {
+    try {
+      await axios.post('/api/reservations/report-full', { reservationId });
+      alert("Laporan diterima. Saldo/Kuota Anda telah dikembalikan.");
+      location.reload();
+    } catch(e) {
+      alert("Gagal mengirim laporan.");
+    }
+  }
+}
+</script>
+<%- include('../partials/footer') %>

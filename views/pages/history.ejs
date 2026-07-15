@@ -1,0 +1,90 @@
+<%- include('../partials/header') %>
+<div class="max-w-2xl mx-auto py-8 px-4">
+  <div class="flex items-center mb-8">
+    <a href="/" class="mr-4 p-2 bg-surface-dim rounded-full text-on-surface-variant hover:bg-surface-container transition-colors">
+      <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+      </svg>
+    </a>
+    <h1 class="text-headline-md font-extrabold tracking-tight">Riwayat Transaksi</h1>
+  </div>
+  
+  <div id="auth-container" class="hidden mb-8">
+    <div class="bg-surface p-6 rounded-2xl border border-outline-variant/30 shadow-sm text-center">
+      <h3 class="text-title-lg font-bold mb-2">Verifikasi Identitas</h3>
+      <p class="text-body-md text-on-surface-variant mb-4">Masukkan nomor WhatsApp yang Anda gunakan saat pemesanan untuk melihat riwayat tiket Anda.</p>
+      <input type="text" id="auth-phone" class="w-full max-w-sm mx-auto block px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none mb-4 text-center text-title-md" placeholder="Contoh: 08123456789">
+      <button onclick="saveAndLoad()" class="w-full max-w-sm px-6 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl transition-colors">Verifikasi & Lihat Riwayat</button>
+    </div>
+  </div>
+
+  <div id="history-container" class="space-y-4">
+    <div class="flex justify-center items-center h-32">
+      <div class="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+function saveAndLoad() {
+  const phone = document.getElementById('auth-phone').value.trim();
+  if(!phone) { alert('Nomor WhatsApp wajib diisi'); return; }
+  localStorage.setItem('parkir_phone', phone);
+  document.getElementById('auth-container').classList.add('hidden');
+  document.getElementById('history-container').innerHTML = '<div class="flex justify-center items-center h-32"><div class="animate-spin rounded-full h-8 w-8 border-4 border-primary border-t-transparent"></div></div>';
+  loadHistory();
+}
+
+async function loadHistory() {
+  const phone = localStorage.getItem('parkir_phone');
+  if(!phone) {
+    document.getElementById('history-container').innerHTML = '';
+    document.getElementById('auth-container').classList.remove('hidden');
+    return;
+  }
+
+  try {
+    const res = await axios.get('/api/reservations/history?phoneNumber=' + encodeURIComponent(phone));
+    const records = res.data;
+    
+    const logoutBtn = '<button onclick="localStorage.removeItem(\\\'parkir_phone\\\'); location.reload();" class="text-error text-label-sm font-bold bg-error-container/30 px-3 py-1 rounded-full hover:bg-error-container transition-colors">Ubah Nomor</button>';
+    
+    if(records.length === 0) {
+      document.getElementById('history-container').innerHTML = `
+        <div class="text-center py-12 text-on-surface-variant">
+          <p class="mb-4">Belum ada riwayat transaksi untuk nomor <b>${phone}</b>.</p>
+          ${logoutBtn}
+        </div>
+      `;
+      return;
+    }
+
+    let html = `<div class="flex justify-between items-center mb-6">
+                  <span class="text-label-md bg-surface-dim px-3 py-1.5 rounded-full">Tiket untuk: <b>${phone}</b></span>
+                  ${logoutBtn}
+                </div>`;
+                
+    records.forEach(r => {
+      let badge = '';
+      if(r.status === 'Occupied') badge = '<span class="px-2 py-1 bg-secondary-container text-on-secondary-container rounded-md text-xs font-bold">SELESAI</span>';
+      else if(r.status === 'cancelled') badge = '<span class="px-2 py-1 bg-error-container text-on-error-container rounded-md text-xs font-bold">DIBATALKAN</span>';
+      else badge = '<span class="px-2 py-1 bg-surface-dim text-on-surface-variant rounded-md text-xs font-bold">KEDALUWARSA</span>';
+
+      html += `
+        <div class="bg-surface p-5 rounded-2xl border border-outline-variant/30 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow">
+          <div>
+            <h4 class="font-bold text-title-md">${r.locationId?.name || 'Unknown'} - ${r.zoneId?.name || ''}</h4>
+            <p class="text-body-sm text-on-surface-variant mt-1">Plat: <span class="font-mono bg-surface-dim px-1.5 py-0.5 rounded text-on-surface">${r.licensePlate}</span> &bull; ${new Date(r.createdAt).toLocaleDateString('id-ID')}</p>
+          </div>
+          <div>${badge}</div>
+        </div>
+      `;
+    });
+    document.getElementById('history-container').innerHTML = html;
+  } catch(e) {
+    document.getElementById('history-container').innerHTML = '<div class="p-4 bg-error-container text-error rounded-xl">Gagal memuat riwayat.</div>';
+  }
+}
+loadHistory();
+</script>
+<%- include('../partials/footer') %>

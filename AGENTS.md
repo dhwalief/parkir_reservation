@@ -33,25 +33,33 @@
 ## 6. User Flow & Core Features
 
 ### Fase 1: Penemuan Tanpa Gesekan (Zero-Friction Discovery)
-- **Akses Instan:** Halaman utama langsung menampilkan pencarian dan daftar gedung parkir terdekat tanpa memaksa login di awal.
-- **Geolokasi:** Gunakan API geolokasi browser. Kirim koordinat (lat/lng) ke backend untuk diolah menggunakan kueri MongoDB `$geoNear` agar gedung terdekat tampil teratas dengan keterangan jarak aktual (misal: 100m, 500m).
-- **Transparansi Quota:** Tampilkan total sisa kuota teragregasi secara real-time pada kartu gedung.
+Pengguna tidak boleh dihalangi oleh layar login atau onboarding yang panjang saat pertama kali membuka aplikasi.
+- **Akses Instan:** Pengguna membuka web aplikasi dan langsung dihadapkan pada layar pencarian.
+- **Deteksi Geolokasi:** Sistem secara otomatis meminta izin lokasi dan menggunakan kueri `$geoNear` di backend untuk menampilkan daftar gedung/lokasi parkir terdekat (diurutkan berdasarkan jarak aktual, misal: 100m, 500m).
+- **Transparansi Kapasitas Global:** Setiap kartu lokasi langsung menampilkan agregasi total sisa kuota (misal: "Gedung A - 45 Kuota Tersisa").
 
 ### Fase 2: Pemilihan Kapasitas (Zone Selection)
-- **Daftar Zona:** Klik gedung mengarah ke pemilihan zona (seperti Basement 1, Area VIP, dll).
-- **Indikator Warna Keras:** Warna hijau untuk ketersediaan aman, merah dengan tombol "Pesan" dinonaktifkan (disabled) jika kuota sisa 0.
+Setelah pengguna memilih satu gedung/lokasi fisik:
+- **Daftar Zona:** Layar menampilkan pilihan zona di dalam gedung tersebut (misal: Basement 1, Area VIP, Parkir Terbuka).
+- **Indikator Warna Keras:** Ketersediaan ditampilkan dengan visual utilitas murni. Hijau untuk aman, Merah dengan tombol mati (disabled) jika zona tersebut berkapasitas 0.
+- **Tindakan Cepat:** Pengguna memilih zona yang tersedia dengan satu ketukan pada tombol "Pesan".
 
 ### Fase 3: Otentikasi Malas (Lazy Auth) & Checkout
-- **Input Plat Nomor:** Formulir checkout (berupa modal bottom sheet ringkas) meminta input Plat Nomor Kendaraan terlebih dahulu.
-- **Session Hold (Soft-Lock):** Saat checkout dibuka, lakukan soft-lock 1 kuota selama 2 menit lewat backend (kurangi kuota tersedia, tambah reservasi sementara) untuk memberikan waktu pengguna mengetik plat nomor tanpa direbut pengguna lain.
-- **Otentikasi Minimal:** Pengguna baru mendaftar hanya menggunakan nomor WhatsApp atau Google OAuth (simulasi diperbolehkan) secara cepat tanpa isian data profil yang panjang.
-- **SLA Warning:** Tampilkan teks peringatan kontras tinggi: *"Reservasi hangus otomatis dalam 15 Menit jika Anda belum tiba di lokasi."*
-- **Simulasi Pembayaran:** Integrasikan alur pembayaran deposit atau biaya parkir.
+Ini adalah titik kritis. Mengubah pengunjung acak menjadi pengguna terdaftar harus dilakukan tepat sebelum mereka membayar, bukan sebelumnya.
+- **Input Minimal:** Halaman checkout (berupa bottom sheet modal yang ringkas) hanya meminta Plat Nomor Kendaraan.
+- **Penahanan Sesi (Session Hold):** Saat checkout dibuka, backend Node.js untuk sementara "mengunci sementara" (soft-lock) 1 kuota selama 2 menit agar tidak direbut orang lain saat pengguna sedang mengetik.
+- **Gerbang Otentikasi (Lazy Login):** Jika ini pengguna baru, mereka hanya diminta memasukkan Nomor WhatsApp atau Akun Google (OAuth) untuk konfirmasi pesanan. Hindari pengisian formulir pendaftaran (Nama, Tanggal Lahir, dll) yang memakan waktu.
+- **Peringatan SLA:** Teks peringatan yang sangat mencolok muncul: *"Reservasi hangus otomatis dalam 15 Menit jika Anda belum tiba di lokasi."*
+- **Pembayaran:** Konfirmasi pembayaran atau deposit (terintegrasi payment gateway).
 
 ### Fase 4: Eksekusi Waktu Nyata (The Active Ticket)
-- **Fokus QR Code:** Tiket menampilkan QR Code berukuran besar dengan kontras tinggi di atas latar belakang putih murni.
-- **Timer Hitung Mundur:** Tampilkan hitung mundur 15 menit secara real-time. Jika habis, backend mengembalikan status reservasi menjadi kadaluwarsa (kuota kembali tersedia) dan UI tiket menunjukkan status "Kedaluwarsa".
-- **Lapor Lapangan Penuh:** Sediakan tombol darurat untuk klaim pengembalian dana (refund) otomatis/semi-otomatis bila saat tiba lokasi fisik ternyata kapasitas penuh karena penyerobotan.
+Setelah pembayaran berhasil, antarmuka berubah menjadi instrumen utilitas.
+- **Fokus Penuh pada QR:** Layar didominasi oleh QR Code kontras tinggi dengan latar belakang putih murni.
+- **Hitung Mundur Agresif:** Timer 15 menit berjalan secara real-time di atas layar. Jika timer habis, status reservasi di database otomatis beralih ke Available kembali, dan UI tiket berubah menjadi "Kedaluwarsa".
+- **Tombol Darurat (Anomaly Handling):** Terdapat tombol yang mudah dijangkau bertuliskan "Lapor Lapangan Penuh". Jika pengguna tiba dan ternyata secara fisik tidak ada tempat kosong (karena penyerobotan), mereka bisa menekan tombol ini untuk mengklaim pengembalian dana (refund otomatis) setelah divalidasi admin.
 
-### Fase 5: Validasi Gerbang (Check-In)
-- **Verifikasi QR:** Halaman khusus petugas pintu gerbang untuk menscan/memverifikasi QR Code. Cocokkan ID lokasi gerbang dengan reservasi. Jika valid, status berubah menjadi `Occupied` (mengurangi `active_reservations`, menambah `active_occupants`).
+### Fase 5: Validasi di Gerbang (Check-In)
+- **Pemindaian Cepat:** Pengguna menunjukkan QR ke petugas atau pemindai di gerbang gedung.
+- **Verifikasi Validitas:** Backend memeriksa kecocokan `location_id` (atau `locationId`) QR dengan lokasi petugas. Jika cocok, status berubah menjadi `Occupied` (atau `occupied`). Jika salah gerbang, sistem menolak.
+- **Siklus Selesai:** Palang terbuka, dan pengguna dipersilakan mencari ruang kosong mana saja di zona yang telah mereka pesan.
+

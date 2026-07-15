@@ -1,0 +1,110 @@
+name: Auto Testing QA & Seed Database
+
+on:
+  push:
+    branches:
+      - "**"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Deploy Parkir Reservation ke VPS via SSH
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.TEST_VPS_HOST }}
+          username: tester
+          key: ${{ secrets.TEST_SSH_KEY }}
+          port: 22
+
+          script: |
+            SAFE_BRANCH=$(echo "${{ github.ref_name }}" | tr '[:upper:]' '[:lower:]' | tr '/' '-')
+            case "$SAFE_BRANCH" in
+              "main")
+                PORT_APP=3000
+                PORT_DB=27017
+                ;;
+              "development")
+                PORT_APP=3001
+                PORT_DB=27018
+                ;;
+              *)
+                # Untuk branch fitur lainnya
+                PORT_APP=3002
+                PORT_DB=27019
+                ;;
+            esac
+
+            export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no"
+
+            git config --global --add safe.directory /opt/NyewaParkiran
+
+            # Pastikan folder ada
+            mkdir -p /opt/NyewaParkiran
+            cd /opt/NyewaParkiran
+            
+            # Reset dan Clone jika belum ada (atau set-url jika ada)
+            if [ ! -d ".git" ]; then
+              git clone https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git .
+            else
+              git remote set-url origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+            fi
+            
+            git fetch origin
+            git checkout ${{ github.ref_name }}
+            git reset --hard origin/${{ github.ref_name }}
+
+            echo "--> Membuat konfigurasi Docker untuk branch $SAFE_BRANCH..."
+
+            # 1. Buat Dockerfile
+            cat << 'EOF' > Dockerfile
+            FROM node:24-alpine
+            WORKDIR /app
+            COPY package*.json ./
+            RUN npm ci
+            COPY . .
+            RUN npm run build:css
+            EXPOSE 3000
+            CMD ["npm", "start"]
+            EOF
+
+            # 2. Buat docker-compose.yml
+            # Kita TIDAK menggunakan bind mount untuk database agar datanya benar-benar bersih (ephemeral)
+            
+            cat << EOF > docker-compose.yml
+            services:
+              database:
+                image: mongo:latest
+                container_name: parkir-db-${SAFE_BRANCH}
+                restart: unless-stopped
+                ports:
+                  - "${PORT_DB}:27017"
+
+              app:
+                build:
+                  context: .
+                  dockerfile: Dockerfile
+                container_name: parkir-app-${SAFE_BRANCH}
+                restart: unless-stopped
+                environment:
+                  - DB_URL=mongodb://database:27017/nyewaparkiran
+                ports:
+                  - "${PORT_APP}:3000"
+                depends_on:
+                  - database
+            EOF
+
+            echo "--> Menghancurkan state database lama (Reset)..."
+            docker compose -p ${SAFE_BRANCH} down -v
+
+            echo "--> Memulai proses deploy baru..."
+            docker compose -p ${SAFE_BRANCH} up -d --build
+
+            echo "--> Menjalankan Seeder untuk mengisi data awal secara otomatis..."
+            # Tunggu beberapa detik agar MongoDB siap menerima koneksi
+            sleep 5
+            docker exec parkir-app-${SAFE_BRANCH} npm run seed
+
+            echo "--> Membersihkan image yang tidak terpakai..."
+            docker image prune -f

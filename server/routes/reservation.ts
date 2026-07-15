@@ -29,7 +29,7 @@ router.post('/hold', async (req, res) => {
       {
         $inc: { active_reservations: 1 }
       },
-      { new: true }
+      { returnDocument: 'after' }
     );
 
     if (!zone) {
@@ -97,6 +97,28 @@ router.post('/confirm', async (req, res) => {
   } catch (error) {
     console.error('Confirm error:', error);
     res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/history', async (req, res) => {
+  try {
+    const { phoneNumber } = req.query;
+    if (!phoneNumber) return res.json([]);
+    
+    const user = await User.findOne({ phoneNumber });
+    if (!user) return res.json([]);
+
+    const reservations = await Reservation.find({
+      userId: user._id,
+      status: { $in: ['Occupied', 'cancelled', 'expired'] }
+    })
+    .populate('locationId')
+    .populate('zoneId')
+    .sort({ createdAt: -1 });
+    
+    res.json(reservations);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal error' });
   }
 });
 
