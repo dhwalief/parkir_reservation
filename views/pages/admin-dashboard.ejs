@@ -2,11 +2,23 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+<script>
+  if (!localStorage.getItem('adminToken')) {
+    window.location.href = '/admin/login';
+  }
+  
+  function handleLogout() {
+    localStorage.removeItem('adminToken');
+    window.location.href = '/admin/login';
+  }
+</script>
+
 <div class="mb-8 flex justify-between items-end">
   <div>
     <h1 class="text-headline-xl-mobile md:text-headline-xl text-on-background mb-2">Panel Admin</h1>
     <p class="text-body-md text-on-surface-variant">Kelola kapasitas, tarif, dan inventaris gedung.</p>
   </div>
+  <button onclick="handleLogout()" class="px-5 py-2 bg-error-container text-error font-bold rounded-xl shadow-sm hover:bg-error hover:text-white transition-all text-sm shrink-0">Logout</button>
 </div>
 
 <!-- Tab Navigation (Mirip Filter Chips) -->
