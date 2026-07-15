@@ -1,10 +1,11 @@
 <%- include('../partials/header') %>
-<div class="max-w-4xl mx-auto py-8 px-4">
+<div class="max-w-6xl mx-auto py-8 px-4">
   <div class="flex justify-between items-center mb-8">
-    <h1 class="text-headline-md font-extrabold tracking-tight">Panel Kendali Kuota</h1>
+    <h1 class="text-headline-md font-extrabold tracking-tight">Panel Kendali Admin</h1>
     <a href="/" class="px-4 py-2 bg-surface-dim text-on-surface rounded-full text-sm font-bold hover:bg-surface-variant transition-colors">Keluar</a>
   </div>
 
+  <!-- Statistik -->
   <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
     <div class="bg-primary-container text-on-primary-container p-6 rounded-2xl shadow-sm">
       <div class="text-label-md uppercase tracking-wider mb-2 font-bold">Reservasi Aktif</div>
@@ -20,24 +21,77 @@
     </div>
   </div>
 
-  <h2 class="text-title-lg font-bold mb-4">Manajemen Zona (Manual Override)</h2>
+  <!-- Section Tambah Gedung & Zona -->
+  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+    <!-- Tambah Lokasi -->
+    <div class="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm">
+      <h3 class="text-title-lg font-bold mb-4">Tambah Gedung/Lokasi Baru</h3>
+      <div class="space-y-3">
+        <input type="text" id="loc-name" placeholder="Nama Gedung (Mis: Mall ABC)" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+        <input type="text" id="loc-address" placeholder="Alamat Lengkap" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+        <div class="flex gap-3">
+          <input type="number" id="loc-lat" placeholder="Latitude (Mis: -6.20)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+          <input type="number" id="loc-lng" placeholder="Longitude (Mis: 106.81)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+        </div>
+        <input type="number" id="loc-radius" placeholder="Radius Pencarian (Meter, default 5000)" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+        <button onclick="createLocation()" class="w-full bg-primary text-on-primary py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors">Simpan Gedung</button>
+      </div>
+    </div>
+
+    <!-- Tambah Zona -->
+    <div class="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm">
+      <h3 class="text-title-lg font-bold mb-4">Tambah Zona Parkir Baru</h3>
+      <div class="space-y-3">
+        <select id="zone-location" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+          <option value="">-- Pilih Gedung --</option>
+        </select>
+        <div class="flex gap-3">
+          <input type="text" id="zone-name" placeholder="Nama Zona (Mis: VIP)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+          <input type="text" id="zone-floor" placeholder="Lantai (Mis: B1)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+        </div>
+        <div class="flex gap-3">
+          <input type="number" id="zone-cap" placeholder="Kapasitas Total" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+          <input type="number" id="zone-price" placeholder="Tarif (Rp/Jam)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+        </div>
+        <button onclick="createZone()" class="w-full bg-secondary text-on-secondary py-2 rounded-lg font-bold hover:bg-secondary/90 transition-colors">Simpan Zona</button>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="text-title-lg font-bold mb-4">Manajemen Zona Aktif</h2>
   <div class="bg-surface rounded-2xl border border-outline-variant overflow-hidden overflow-x-auto shadow-sm">
-    <table class="w-full text-left min-w-[600px]">
+    <table class="w-full text-left min-w-[800px]">
       <thead class="bg-surface-dim border-b border-outline-variant">
         <tr>
           <th class="p-4 font-bold text-label-lg">Gedung / Zona</th>
           <th class="p-4 font-bold text-label-lg text-center">Kapasitas Sisa</th>
-          <th class="p-4 font-bold text-label-lg text-right">Aksi Darurat</th>
+          <th class="p-4 font-bold text-label-lg text-right">Tarif (Rp/Jam)</th>
+          <th class="p-4 font-bold text-label-lg text-right">Aksi</th>
         </tr>
       </thead>
       <tbody id="zones-table-body">
-        <tr><td colspan="3" class="text-center py-8 text-on-surface-variant">Memuat data...</td></tr>
+        <tr><td colspan="4" class="text-center py-8 text-on-surface-variant">Memuat data...</td></tr>
       </tbody>
     </table>
   </div>
 </div>
 
 <script>
+let zonesData = [];
+
+async function loadLocationsForDropdown() {
+  try {
+    const res = await axios.get('/api/admin/locations');
+    const select = document.getElementById('zone-location');
+    select.innerHTML = '<option value="">-- Pilih Gedung --</option>';
+    res.data.forEach(loc => {
+      select.innerHTML += `<option value="${loc._id}">${loc.name} (${loc.radius_meters}m)</option>`;
+    });
+  } catch(e) {
+    console.error("Gagal memuat lokasi", e);
+  }
+}
+
 async function loadDashboard() {
   try {
     const statsRes = await axios.get('/api/admin/stats');
@@ -46,31 +100,75 @@ async function loadDashboard() {
     document.getElementById('stat-anomalies').innerText = statsRes.data.anomalies;
 
     const zonesRes = await axios.get('/api/admin/zones');
-    let html = '';
-    zonesRes.data.forEach(z => {
-      const available = z.total_capacity - z.active_reservations - z.active_occupants;
-      html += `
-        <tr class="border-b border-outline-variant/30 hover:bg-surface-dim/30 transition-colors">
-          <td class="p-4">
-            <div class="text-body-lg font-bold">${z.locationId?.name || '-'}</div>
-            <div class="text-body-sm text-on-surface-variant">${z.name} (Lantai: ${z.floor_level})</div>
-          </td>
-          <td class="p-4 text-center">
-            <span class="${available > 0 ? 'bg-primary-container text-on-primary-container' : 'bg-error-container text-on-error-container'} px-3 py-1.5 rounded-full font-bold text-sm">
-              ${available} / ${z.total_capacity}
-            </span>
-          </td>
-          <td class="p-4 text-right">
-            <button onclick="overrideZone('${z._id}')" ${z.total_capacity === 0 ? 'disabled' : ''} class="${z.total_capacity === 0 ? 'bg-surface-variant text-on-surface-variant cursor-not-allowed' : 'bg-error hover:bg-error/90 text-white active:scale-95'} px-4 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">
-              ${z.total_capacity === 0 ? 'Ditutup' : 'Tutup Paksa'}
-            </button>
-          </td>
-        </tr>
-      `;
-    });
-    document.getElementById('zones-table-body').innerHTML = html;
+    zonesData = zonesRes.data;
+    renderZones();
   } catch(e) {
     console.error("Gagal memuat dasbor admin", e);
+  }
+}
+
+function renderZones() {
+  let html = '';
+  zonesData.forEach(z => {
+    const available = z.total_capacity - z.active_reservations - z.active_occupants;
+    html += `
+      <tr class="border-b border-outline-variant/30 hover:bg-surface-dim/30 transition-colors" id="row-${z._id}">
+        <td class="p-4">
+          <div class="text-body-lg font-bold">${z.locationId?.name || '-'}</div>
+          <div class="text-body-sm text-on-surface-variant">${z.name} (Lantai: ${z.floor_level})</div>
+        </td>
+        <td class="p-4 text-center">
+          <span class="${available > 0 ? 'bg-primary-container text-on-primary-container' : 'bg-error-container text-on-error-container'} px-3 py-1.5 rounded-full font-bold text-sm">
+            ${available} / ${z.total_capacity}
+          </span>
+        </td>
+        <td class="p-4 text-right">
+          <span class="font-mono text-body-lg">Rp${(z.price_per_hour || 0).toLocaleString('id-ID')}</span>
+        </td>
+        <td class="p-4 text-right space-x-2">
+          <button onclick="editZone('${z._id}')" class="bg-surface-container-high hover:bg-surface-variant text-on-surface px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">
+            Ubah
+          </button>
+          <button onclick="overrideZone('${z._id}')" ${z.total_capacity === 0 ? 'disabled' : ''} class="${z.total_capacity === 0 ? 'bg-surface-variant text-on-surface-variant cursor-not-allowed' : 'bg-error hover:bg-error/90 text-white active:scale-95'} px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">
+            Tutup Paksa
+          </button>
+        </td>
+      </tr>
+    `;
+  });
+  document.getElementById('zones-table-body').innerHTML = html;
+}
+
+function editZone(zoneId) {
+  const z = zonesData.find(x => x._id === zoneId);
+  if(!z) return;
+  const row = document.getElementById('row-' + zoneId);
+  row.innerHTML = `
+    <td class="p-4">
+      <div class="text-body-lg font-bold">${z.locationId?.name || '-'}</div>
+      <div class="text-body-sm text-on-surface-variant">${z.name}</div>
+    </td>
+    <td class="p-4 text-center">
+      <input type="number" id="edit-cap-${z._id}" value="${z.total_capacity}" class="w-20 px-2 py-1 border border-outline-variant rounded-md text-center bg-white" min="0">
+    </td>
+    <td class="p-4 text-right">
+      Rp <input type="number" id="edit-price-${z._id}" value="${z.price_per_hour || 0}" class="w-28 px-2 py-1 border border-outline-variant rounded-md text-right bg-white" min="0">
+    </td>
+    <td class="p-4 text-right space-x-2">
+      <button onclick="saveZone('${z._id}')" class="bg-primary hover:bg-primary/90 text-white px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">Simpan</button>
+      <button onclick="renderZones()" class="bg-surface-variant hover:bg-surface-container-high text-on-surface-variant px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">Batal</button>
+    </td>
+  `;
+}
+
+async function saveZone(zoneId) {
+  const cap = document.getElementById('edit-cap-'+zoneId).value;
+  const price = document.getElementById('edit-price-'+zoneId).value;
+  try {
+    await axios.put('/api/admin/zones/' + zoneId, { total_capacity: cap, price_per_hour: price });
+    loadDashboard();
+  } catch(e) {
+    alert("Gagal menyimpan data zona.");
   }
 }
 
@@ -78,7 +176,6 @@ async function overrideZone(zoneId) {
   if(confirm("PERINGATAN: Aksi ini akan mengubah kapasitas total zona ini menjadi 0 (menutup area dari pesanan baru selamanya). Anda yakin?")) {
     try {
       await axios.post('/api/admin/zones/' + zoneId + '/override');
-      alert("Zona berhasil ditutup paksa.");
       loadDashboard();
     } catch(e) {
       alert("Gagal melakukan override.");
@@ -86,7 +183,50 @@ async function overrideZone(zoneId) {
   }
 }
 
+async function createLocation() {
+  const data = {
+    name: document.getElementById('loc-name').value,
+    address: document.getElementById('loc-address').value,
+    lat: document.getElementById('loc-lat').value,
+    lng: document.getElementById('loc-lng').value,
+    radius_meters: document.getElementById('loc-radius').value || 5000
+  };
+  if(!data.name || !data.address || !data.lat || !data.lng) return alert("Harap isi semua kolom wajib!");
+  
+  try {
+    await axios.post('/api/admin/locations', data);
+    alert("Gedung berhasil ditambahkan!");
+    // Clear inputs
+    ['loc-name', 'loc-address', 'loc-lat', 'loc-lng', 'loc-radius'].forEach(id => document.getElementById(id).value = '');
+    loadLocationsForDropdown(); // Refresh dropdown
+  } catch(e) {
+    alert("Gagal menyimpan gedung.");
+  }
+}
+
+async function createZone() {
+  const data = {
+    locationId: document.getElementById('zone-location').value,
+    name: document.getElementById('zone-name').value,
+    floor_level: document.getElementById('zone-floor').value,
+    total_capacity: document.getElementById('zone-cap').value,
+    price_per_hour: document.getElementById('zone-price').value
+  };
+  if(!data.locationId || !data.name || !data.total_capacity || !data.price_per_hour) return alert("Harap isi semua kolom!");
+
+  try {
+    await axios.post('/api/admin/zones', data);
+    alert("Zona berhasil ditambahkan!");
+    // Clear inputs
+    ['zone-name', 'zone-floor', 'zone-cap', 'zone-price'].forEach(id => document.getElementById(id).value = '');
+    loadDashboard(); // Refresh table
+  } catch(e) {
+    alert("Gagal menyimpan zona.");
+  }
+}
+
+loadLocationsForDropdown();
 loadDashboard();
-setInterval(loadDashboard, 10000); // Polling every 10s
+setInterval(loadDashboard, 10000);
 </script>
 <%- include('../partials/footer') %>

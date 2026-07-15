@@ -1,4 +1,5 @@
 import express from 'express';
+import ParkingLocation from '../models/ParkingLocation';
 import ParkingZone from '../models/ParkingZone';
 import Reservation from '../models/Reservation';
 
@@ -20,6 +21,51 @@ router.get('/zones', async (req, res) => {
   try {
     const zones = await ParkingZone.find().populate('locationId');
     res.json(zones);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.get('/locations', async (req, res) => {
+  try {
+    const locations = await ParkingLocation.find().sort({ createdAt: -1 });
+    res.json(locations);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/locations', async (req, res) => {
+  try {
+    const { name, address, lng, lat, radius_meters } = req.body;
+    const loc = await ParkingLocation.create({
+      name,
+      address,
+      radius_meters: Number(radius_meters) || 5000,
+      location: {
+        type: 'Point',
+        coordinates: [Number(lng), Number(lat)]
+      }
+    });
+    res.status(201).json(loc);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.post('/zones', async (req, res) => {
+  try {
+    const { locationId, name, floor_level, total_capacity, price_per_hour } = req.body;
+    const zone = await ParkingZone.create({
+      locationId,
+      name,
+      floor_level,
+      total_capacity: Number(total_capacity),
+      active_reservations: 0,
+      active_occupants: 0,
+      price_per_hour: Number(price_per_hour)
+    });
+    res.status(201).json(zone);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }

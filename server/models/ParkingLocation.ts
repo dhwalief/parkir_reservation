@@ -5,6 +5,7 @@ export interface IParkingLocation extends Document {
   address: string;
   description?: string;
   image?: string;
+  radius_meters: number;
   location: {
     type: string;
     coordinates: number[]; // [longitude, latitude]
@@ -16,6 +17,7 @@ const ParkingLocationSchema: Schema = new Schema({
   address: { type: String, required: true },
   description: { type: String },
   image: { type: String },
+  radius_meters: { type: Number, default: 5000 },
   location: {
     type: { type: String, enum: ['Point'], default: 'Point', required: true },
     coordinates: {

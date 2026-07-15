@@ -18,6 +18,13 @@ router.get('/', async (req, res) => {
             distanceField: 'distance',
             spherical: true
           }
+        },
+        {
+          $match: {
+            $expr: {
+              $lte: ['$distance', { $ifNull: ['$radius_meters', 5000] }]
+            }
+          }
         }
       ]);
       return res.json(locations);
