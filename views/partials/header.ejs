@@ -16,18 +16,49 @@
     <div class="max-w-4xl mx-auto px-2 md:px-4 h-16 flex items-center justify-between">
       <a href="/" class="text-primary font-extrabold text-lg md:text-2xl tracking-tight truncate mr-2">NyewaParkiran</a>
       <!-- Links -->
-      <div class="flex space-x-1 md:space-x-2 flex-shrink-0">
+      <div class="flex space-x-1 md:space-x-2 flex-shrink-0" id="nav-links">
         <a href="/history" class="text-[9px] md:text-[10px] font-semibold text-on-surface px-2 md:px-4 py-1.5 md:py-2 bg-surface-container rounded-full hover:bg-surface-variant transition-colors duration-200">
           Riwayat
         </a>
-        <a href="/admin/login" class="text-[9px] md:text-[10px] font-semibold text-on-surface px-2 md:px-4 py-1.5 md:py-2 bg-surface-container rounded-full hover:bg-surface-variant transition-colors duration-200">
+        <a href="/admin/login" id="nav-admin" class="text-[9px] md:text-[10px] font-semibold text-on-surface px-2 md:px-4 py-1.5 md:py-2 bg-surface-container rounded-full hover:bg-surface-variant transition-colors duration-200">
           Admin
         </a>
-        <a href="/gate" class="text-[9px] md:text-[10px] font-semibold text-secondary px-2 md:px-4 py-1.5 md:py-2 bg-secondary-container rounded-full hover:bg-secondary hover:text-white transition-colors duration-200">
+        <a href="/gate" id="nav-gate" class="hidden text-[9px] md:text-[10px] font-semibold text-secondary px-2 md:px-4 py-1.5 md:py-2 bg-secondary-container rounded-full hover:bg-secondary hover:text-white transition-colors duration-200">
           Gerbang
         </a>
+        <button id="nav-logout" onclick="globalHandleLogout()" class="hidden text-[9px] md:text-[10px] font-semibold text-error px-2 md:px-4 py-1.5 md:py-2 bg-error-container rounded-full hover:bg-error hover:text-white transition-colors duration-200">
+          Logout
+        </button>
       </div>
     </div>
   </header>
+
+  <script>
+    function updateNavbar() {
+      const token = localStorage.getItem('adminToken');
+      const navAdmin = document.getElementById('nav-admin');
+      const navGate = document.getElementById('nav-gate');
+      const navLogout = document.getElementById('nav-logout');
+      
+      if (token) {
+        if(navAdmin) { navAdmin.href = '/admin/dashboard'; navAdmin.innerText = 'Dasbor'; }
+        if(navGate) navGate.classList.remove('hidden');
+        if(navLogout) navLogout.classList.remove('hidden');
+      } else {
+        if(navAdmin) { navAdmin.href = '/admin/login'; navAdmin.innerText = 'Admin'; }
+        if(navGate) navGate.classList.add('hidden');
+        if(navLogout) navLogout.classList.add('hidden');
+      }
+    }
+    
+    function globalHandleLogout() {
+      localStorage.removeItem('adminToken');
+      window.location.href = '/admin/login';
+    }
+
+    // Run immediately to prevent flickering
+    updateNavbar();
+  </script>
+
   <!-- Main View Container -->
   <main id="app" class="max-w-4xl mx-auto px-4 py-8 relative">
