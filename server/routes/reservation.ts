@@ -56,8 +56,8 @@ router.post('/hold', async (req, res) => {
 
 const confirmSchema = z.object({
   reservationId: z.string(),
-  licensePlate: z.string(),
-  phoneNumber: z.string()
+  licensePlate: z.string().regex(/^[a-zA-Z]{1,2}\s\d{1,4}\s[a-zA-Z]{1,3}$/, "Format plat nomor tidak valid (contoh: B 1234 ABC)"),
+  phoneNumber: z.string().regex(/^(08|628)\d{7,12}$/, "Format Nomor HP tidak valid (harus diawali 08 atau 628)")
 });
 
 router.post('/confirm', async (req, res) => {
@@ -95,6 +95,9 @@ router.post('/confirm', async (req, res) => {
     await reservation.save();
     res.json(reservation);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: error.errors[0].message });
+    }
     console.error('Confirm error:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
