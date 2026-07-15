@@ -53,6 +53,32 @@ router.post('/locations', async (req, res) => {
   }
 });
 
+router.put('/locations/:id', async (req, res) => {
+  try {
+    const { name, address, radius_meters } = req.body;
+    const loc = await ParkingLocation.findByIdAndUpdate(req.params.id, {
+      name,
+      address,
+      radius_meters: Number(radius_meters)
+    }, { returnDocument: 'after' });
+    if (!loc) return res.status(404).json({ error: 'Gedung tidak ditemukan' });
+    res.json(loc);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/locations/:id', async (req, res) => {
+  try {
+    const loc = await ParkingLocation.findByIdAndDelete(req.params.id);
+    if (!loc) return res.status(404).json({ error: 'Gedung tidak ditemukan' });
+    await ParkingZone.deleteMany({ locationId: req.params.id });
+    res.json({ message: 'Gedung berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 router.post('/zones', async (req, res) => {
   try {
     const { locationId, name, floor_level, total_capacity, price_per_hour } = req.body;
@@ -81,6 +107,16 @@ router.put('/zones/:id', async (req, res) => {
     
     if (!zone) return res.status(404).json({ error: 'Zona tidak ditemukan' });
     res.json(zone);
+  } catch (err) {
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+router.delete('/zones/:id', async (req, res) => {
+  try {
+    const zone = await ParkingZone.findByIdAndDelete(req.params.id);
+    if (!zone) return res.status(404).json({ error: 'Zona tidak ditemukan' });
+    res.json({ message: 'Zona berhasil dihapus' });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
   }

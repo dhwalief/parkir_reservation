@@ -25,12 +25,91 @@ router.get('/', async (req, res) => {
               $lte: ['$distance', { $ifNull: ['$radius_meters', 5000] }]
             }
           }
+        },
+        {
+          $lookup: {
+            from: 'parkingzones',
+            localField: '_id',
+            foreignField: 'locationId',
+            as: 'zones'
+          }
+        },
+        {
+          $addFields: {
+            total_capacity: {
+              $reduce: {
+                input: '$zones',
+                initialValue: 0,
+                in: {
+                  $add: [
+                    '$$value',
+                    {
+                      $max: [
+                        0,
+                        {
+                          $subtract: [
+                            '$$this.total_capacity',
+                            { $add: ['$$this.active_reservations', '$$this.active_occupants'] }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            zones: 0
+          }
         }
       ]);
       return res.json(locations);
     } else {
       // Fallback: list all
-      const locations = await ParkingLocation.find({});
+      const locations = await ParkingLocation.aggregate([
+        {
+          $lookup: {
+            from: 'parkingzones',
+            localField: '_id',
+            foreignField: 'locationId',
+            as: 'zones'
+          }
+        },
+        {
+          $addFields: {
+            total_capacity: {
+              $reduce: {
+                input: '$zones',
+                initialValue: 0,
+                in: {
+                  $add: [
+                    '$$value',
+                    {
+                      $max: [
+                        0,
+                        {
+                          $subtract: [
+                            '$$this.total_capacity',
+                            { $add: ['$$this.active_reservations', '$$this.active_occupants'] }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        },
+        {
+          $project: {
+            zones: 0
+          }
+        }
+      ]);
       return res.json(locations);
     }
   } catch (error) {

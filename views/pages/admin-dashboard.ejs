@@ -1,110 +1,234 @@
-<%- include('../partials/header') %>
-<div class="max-w-6xl mx-auto py-8 px-4">
-  <div class="flex justify-between items-center mb-8">
-    <h1 class="text-headline-md font-extrabold tracking-tight">Panel Kendali Admin</h1>
-    <a href="/" class="px-4 py-2 bg-surface-dim text-on-surface rounded-full text-sm font-bold hover:bg-surface-variant transition-colors">Keluar</a>
-  </div>
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dasbor Admin - NyewaParkiran</title>
+  <link href="/css/style.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-background text-on-background font-sans antialiased">
+  
+<div class="flex h-screen overflow-hidden">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-surface border-r border-outline-variant/30 flex-col hidden md:flex z-10 shadow-sm">
+    <div class="p-6 border-b border-outline-variant/30">
+      <h2 class="text-title-lg font-extrabold text-primary tracking-tight">NyewaAdmin</h2>
+    </div>
+    <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
+      <button onclick="switchTab('tab-home')" id="btn-tab-home" class="sidebar-btn w-full text-left px-4 py-3 rounded-xl font-bold transition-colors bg-primary-container text-on-primary-container">Beranda</button>
+      <button onclick="switchTab('tab-locations')" id="btn-tab-locations" class="sidebar-btn w-full text-left px-4 py-3 rounded-xl font-bold transition-colors hover:bg-surface-variant text-on-surface-variant">Kelola Gedung</button>
+      <button onclick="switchTab('tab-zones')" id="btn-tab-zones" class="sidebar-btn w-full text-left px-4 py-3 rounded-xl font-bold transition-colors hover:bg-surface-variant text-on-surface-variant">Kelola Zona</button>
+    </nav>
+    <div class="p-4 border-t border-outline-variant/30">
+      <a href="/" class="block w-full text-center px-4 py-3 bg-error-container hover:bg-error text-on-error-container hover:text-white rounded-xl font-bold transition-colors">Tutup Dasbor</a>
+    </div>
+  </aside>
 
-  <!-- Statistik -->
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-primary-container text-on-primary-container p-6 rounded-2xl shadow-sm">
-      <div class="text-label-md uppercase tracking-wider mb-2 font-bold">Reservasi Aktif</div>
-      <div id="stat-active" class="text-display-md font-black">...</div>
+  <!-- Main Content -->
+  <main class="flex-1 overflow-y-auto bg-surface-dim/30 p-4 md:p-8 relative">
+    
+    <!-- Mobile Nav Toggle -->
+    <div class="md:hidden flex justify-between items-center bg-surface p-4 rounded-2xl mb-4 shadow-sm border border-outline-variant/30">
+      <h2 class="font-bold text-primary">NyewaAdmin</h2>
+      <select onchange="switchTab(this.value)" class="bg-surface-dim border-none rounded-lg px-3 py-1 font-bold text-sm">
+        <option value="tab-home">Beranda</option>
+        <option value="tab-locations">Gedung</option>
+        <option value="tab-zones">Zona Parkir</option>
+      </select>
     </div>
-    <div class="bg-secondary-container text-on-secondary-container p-6 rounded-2xl shadow-sm">
-      <div class="text-label-md uppercase tracking-wider mb-2 font-bold">Kendaraan di Dalam</div>
-      <div id="stat-occupants" class="text-display-md font-black">...</div>
-    </div>
-    <div class="bg-error-container text-on-error-container p-6 rounded-2xl shadow-sm">
-      <div class="text-label-md uppercase tracking-wider mb-2 font-bold">Anomali Dilaporkan</div>
-      <div id="stat-anomalies" class="text-display-md font-black">...</div>
-    </div>
-  </div>
 
-  <!-- Section Tambah Gedung & Zona -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-    <!-- Tambah Lokasi -->
-    <div class="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm">
-      <h3 class="text-title-lg font-bold mb-4">Tambah Gedung/Lokasi Baru</h3>
-      <div class="space-y-3">
-        <input type="text" id="loc-name" placeholder="Nama Gedung (Mis: Mall ABC)" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-        <input type="text" id="loc-address" placeholder="Alamat Lengkap" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-        <div class="flex gap-3">
-          <input type="number" id="loc-lat" placeholder="Latitude (Mis: -6.20)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-          <input type="number" id="loc-lng" placeholder="Longitude (Mis: 106.81)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+    <!-- TAB: HOME -->
+    <div id="tab-home" class="tab-content block animate-fade-in">
+      <h1 class="text-headline-sm font-extrabold tracking-tight mb-6 text-on-surface">Ringkasan Sistem</h1>
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div class="bg-primary-container text-on-primary-container p-6 rounded-2xl shadow-sm border border-primary/20">
+          <div class="text-label-md uppercase tracking-wider mb-2 font-bold opacity-80">Reservasi Aktif</div>
+          <div id="stat-active" class="text-display-md font-black">0</div>
         </div>
-        <input type="number" id="loc-radius" placeholder="Radius Pencarian (Meter, default 5000)" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-        <button onclick="createLocation()" class="w-full bg-primary text-on-primary py-2 rounded-lg font-bold hover:bg-primary/90 transition-colors">Simpan Gedung</button>
+        <div class="bg-secondary-container text-on-secondary-container p-6 rounded-2xl shadow-sm border border-secondary/20">
+          <div class="text-label-md uppercase tracking-wider mb-2 font-bold opacity-80">Kendaraan di Dalam</div>
+          <div id="stat-occupants" class="text-display-md font-black">0</div>
+        </div>
+        <div class="bg-error-container text-on-error-container p-6 rounded-2xl shadow-sm border border-error/20">
+          <div class="text-label-md uppercase tracking-wider mb-2 font-bold opacity-80">Anomali Penuh</div>
+          <div id="stat-anomalies" class="text-display-md font-black">0</div>
+        </div>
+      </div>
+      <div class="bg-surface p-8 rounded-3xl border border-outline-variant/30 text-center shadow-sm">
+        <img src="https://api.dicebear.com/7.x/shapes/svg?seed=AdminDash" class="w-32 h-32 mx-auto mb-4 opacity-50" alt="Decoration">
+        <h3 class="text-title-lg font-bold">Selamat Datang di Dasbor</h3>
+        <p class="text-on-surface-variant mt-2 max-w-md mx-auto">Gunakan menu di samping untuk mengelola inventaris gedung, menyesuaikan harga, atau menambah kapasitas zona parkir Anda secara langsung.</p>
       </div>
     </div>
 
-    <!-- Tambah Zona -->
-    <div class="bg-surface p-6 rounded-2xl border border-outline-variant shadow-sm">
-      <h3 class="text-title-lg font-bold mb-4">Tambah Zona Parkir Baru</h3>
-      <div class="space-y-3">
-        <select id="zone-location" class="w-full px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-          <option value="">-- Pilih Gedung --</option>
-        </select>
-        <div class="flex gap-3">
-          <input type="text" id="zone-name" placeholder="Nama Zona (Mis: VIP)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-          <input type="text" id="zone-floor" placeholder="Lantai (Mis: B1)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+    <!-- TAB: LOCATIONS -->
+    <div id="tab-locations" class="tab-content hidden animate-fade-in">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-headline-sm font-extrabold tracking-tight text-on-surface">Kelola Gedung / Lokasi</h1>
+      </div>
+      
+      <!-- Form Tambah Lokasi -->
+      <div class="bg-surface p-6 rounded-2xl border border-outline-variant/30 shadow-sm mb-8">
+        <h3 class="text-title-md font-bold mb-4">Tambah Gedung Baru</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <input type="text" id="loc-name" placeholder="Nama Gedung (Mis: Mall ABC)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none">
+          <input type="text" id="loc-address" placeholder="Alamat Lengkap" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none">
+          <input type="number" id="loc-lat" placeholder="Latitude (Mis: -6.20)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none">
+          <input type="number" id="loc-lng" placeholder="Longitude (Mis: 106.81)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none">
+          <input type="number" id="loc-radius" placeholder="Radius Cari (Meter, Default: 5000)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:outline-none md:col-span-2">
+          <button onclick="createLocation()" class="md:col-span-2 bg-primary text-on-primary py-3 rounded-xl font-bold hover:bg-primary/90 transition-all shadow-md active:scale-[0.99]">Simpan Gedung</button>
         </div>
-        <div class="flex gap-3">
-          <input type="number" id="zone-cap" placeholder="Kapasitas Total" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
-          <input type="number" id="zone-price" placeholder="Tarif (Rp/Jam)" class="w-1/2 px-3 py-2 bg-surface-dim border border-outline-variant rounded-lg">
+      </div>
+
+      <!-- Tabel Lokasi -->
+      <div class="bg-surface rounded-2xl border border-outline-variant/30 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left min-w-[700px]">
+            <thead class="bg-surface-dim border-b border-outline-variant">
+              <tr>
+                <th class="p-4 font-bold text-label-lg">Nama & Alamat</th>
+                <th class="p-4 font-bold text-label-lg">Koordinat & Radius</th>
+                <th class="p-4 font-bold text-label-lg text-right w-48">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="locations-table-body">
+              <tr><td colspan="3" class="text-center py-8 text-on-surface-variant">Memuat data...</td></tr>
+            </tbody>
+          </table>
         </div>
-        <button onclick="createZone()" class="w-full bg-secondary text-on-secondary py-2 rounded-lg font-bold hover:bg-secondary/90 transition-colors">Simpan Zona</button>
       </div>
     </div>
-  </div>
 
-  <h2 class="text-title-lg font-bold mb-4">Manajemen Zona Aktif</h2>
-  <div class="bg-surface rounded-2xl border border-outline-variant overflow-hidden overflow-x-auto shadow-sm">
-    <table class="w-full text-left min-w-[800px]">
-      <thead class="bg-surface-dim border-b border-outline-variant">
-        <tr>
-          <th class="p-4 font-bold text-label-lg">Gedung / Zona</th>
-          <th class="p-4 font-bold text-label-lg text-center">Kapasitas Sisa</th>
-          <th class="p-4 font-bold text-label-lg text-right">Tarif (Rp/Jam)</th>
-          <th class="p-4 font-bold text-label-lg text-right">Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="zones-table-body">
-        <tr><td colspan="4" class="text-center py-8 text-on-surface-variant">Memuat data...</td></tr>
-      </tbody>
-    </table>
-  </div>
+    <!-- TAB: ZONES -->
+    <div id="tab-zones" class="tab-content hidden animate-fade-in">
+      <div class="flex justify-between items-center mb-6">
+        <h1 class="text-headline-sm font-extrabold tracking-tight text-on-surface">Kelola Zona Parkir</h1>
+      </div>
+
+      <!-- Form Tambah Zona -->
+      <div class="bg-surface p-6 rounded-2xl border border-outline-variant/30 shadow-sm mb-8">
+        <h3 class="text-title-md font-bold mb-4">Tambah Zona Baru</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <select id="zone-location" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary focus:outline-none md:col-span-2 font-bold text-on-surface">
+            <option value="">-- Pilih Gedung Induk --</option>
+          </select>
+          <input type="text" id="zone-name" placeholder="Nama Zona (Mis: VIP)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary focus:outline-none">
+          <input type="text" id="zone-floor" placeholder="Lantai (Mis: B1)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary focus:outline-none">
+          <input type="number" id="zone-cap" placeholder="Kapasitas Total" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary focus:outline-none">
+          <input type="number" id="zone-price" placeholder="Tarif (Rp/Jam)" class="px-4 py-3 bg-surface-dim border border-outline-variant rounded-xl focus:ring-2 focus:ring-secondary focus:outline-none">
+          <button onclick="createZone()" class="md:col-span-2 bg-secondary text-on-secondary py-3 rounded-xl font-bold hover:bg-secondary/90 transition-all shadow-md active:scale-[0.99]">Simpan Zona</button>
+        </div>
+      </div>
+
+      <!-- Tabel Zona -->
+      <div class="bg-surface rounded-2xl border border-outline-variant/30 overflow-hidden shadow-sm">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left min-w-[900px]">
+            <thead class="bg-surface-dim border-b border-outline-variant">
+              <tr>
+                <th class="p-4 font-bold text-label-lg">Gedung / Zona</th>
+                <th class="p-4 font-bold text-label-lg text-center">Kapasitas Sisa</th>
+                <th class="p-4 font-bold text-label-lg text-right">Tarif (Rp/Jam)</th>
+                <th class="p-4 font-bold text-label-lg text-right w-64">Aksi</th>
+              </tr>
+            </thead>
+            <tbody id="zones-table-body">
+              <tr><td colspan="4" class="text-center py-8 text-on-surface-variant">Memuat data...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
 </div>
 
 <script>
+// ================= STATE & TABS =================
+let locationsData = [];
 let zonesData = [];
+let pollingInterval;
 
-async function loadLocationsForDropdown() {
-  try {
-    const res = await axios.get('/api/admin/locations');
-    const select = document.getElementById('zone-location');
-    select.innerHTML = '<option value="">-- Pilih Gedung --</option>';
-    res.data.forEach(loc => {
-      select.innerHTML += `<option value="${loc._id}">${loc.name} (${loc.radius_meters}m)</option>`;
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+  document.getElementById(tabId).classList.remove('hidden');
+  
+  if(window.innerWidth >= 768) {
+    document.querySelectorAll('.sidebar-btn').forEach(btn => {
+      btn.className = "sidebar-btn w-full text-left px-4 py-3 rounded-xl font-bold transition-colors hover:bg-surface-variant text-on-surface-variant";
     });
-  } catch(e) {
-    console.error("Gagal memuat lokasi", e);
+    const activeBtn = document.getElementById('btn-' + tabId);
+    if(activeBtn) activeBtn.className = "sidebar-btn w-full text-left px-4 py-3 rounded-xl font-bold transition-colors bg-primary-container text-on-primary-container";
   }
+
+  // Reload data relevant to tab
+  if(tabId === 'tab-home') loadStats();
+  if(tabId === 'tab-locations') loadLocations();
+  if(tabId === 'tab-zones') loadZones();
 }
 
-async function loadDashboard() {
+// ================= API CALLS =================
+async function loadStats() {
   try {
-    const statsRes = await axios.get('/api/admin/stats');
-    document.getElementById('stat-active').innerText = statsRes.data.active_reservations;
-    document.getElementById('stat-occupants').innerText = statsRes.data.occupants;
-    document.getElementById('stat-anomalies').innerText = statsRes.data.anomalies;
+    const res = await axios.get('/api/admin/stats');
+    document.getElementById('stat-active').innerText = res.data.active_reservations;
+    document.getElementById('stat-occupants').innerText = res.data.occupants;
+    document.getElementById('stat-anomalies').innerText = res.data.anomalies;
+  } catch(e) {}
+}
 
-    const zonesRes = await axios.get('/api/admin/zones');
-    zonesData = zonesRes.data;
+async function loadLocations() {
+  try {
+    const res = await axios.get('/api/admin/locations');
+    locationsData = res.data;
+    renderLocations();
+    updateLocationDropdown();
+  } catch(e) {}
+}
+
+async function loadZones() {
+  try {
+    if(locationsData.length === 0) await loadLocations();
+    const res = await axios.get('/api/admin/zones');
+    zonesData = res.data;
     renderZones();
-  } catch(e) {
-    console.error("Gagal memuat dasbor admin", e);
-  }
+  } catch(e) {}
+}
+
+// ================= RENDERERS =================
+function updateLocationDropdown() {
+  const select = document.getElementById('zone-location');
+  select.innerHTML = '<option value="">-- Pilih Gedung Induk --</option>';
+  locationsData.forEach(loc => {
+    select.innerHTML += `<option value="${loc._id}">${loc.name}</option>`;
+  });
+}
+
+function renderLocations() {
+  let html = '';
+  locationsData.forEach(loc => {
+    html += `
+      <tr class="border-b border-outline-variant/30 hover:bg-surface-dim/30" id="row-loc-${loc._id}">
+        <td class="p-4">
+          <div class="font-bold text-title-sm">${loc.name}</div>
+          <div class="text-body-sm text-on-surface-variant max-w-xs truncate" title="${loc.address}">${loc.address}</div>
+        </td>
+        <td class="p-4">
+          <div class="font-mono text-xs bg-surface-dim px-2 py-1 rounded inline-block mb-1">
+            Lat: ${loc.location.coordinates[1]} <br> Lng: ${loc.location.coordinates[0]}
+          </div>
+          <div class="text-label-sm font-bold text-primary">Radius: ${loc.radius_meters}m</div>
+        </td>
+        <td class="p-4 text-right space-x-1">
+          <button onclick="editLocation('${loc._id}')" class="bg-surface-container-high hover:bg-surface-variant text-on-surface px-3 py-1.5 font-bold rounded-lg text-sm transition-all shadow-sm">Ubah</button>
+          <button onclick="deleteLocation('${loc._id}')" class="bg-error-container hover:bg-error hover:text-white text-error px-3 py-1.5 font-bold rounded-lg text-sm transition-all shadow-sm">Hapus</button>
+        </td>
+      </tr>
+    `;
+  });
+  if(!html) html = '<tr><td colspan="3" class="text-center py-8 text-on-surface-variant">Belum ada gedung.</td></tr>';
+  document.getElementById('locations-table-body').innerHTML = html;
 }
 
 function renderZones() {
@@ -112,77 +236,32 @@ function renderZones() {
   zonesData.forEach(z => {
     const available = z.total_capacity - z.active_reservations - z.active_occupants;
     html += `
-      <tr class="border-b border-outline-variant/30 hover:bg-surface-dim/30 transition-colors" id="row-${z._id}">
+      <tr class="border-b border-outline-variant/30 hover:bg-surface-dim/30" id="row-zone-${z._id}">
         <td class="p-4">
-          <div class="text-body-lg font-bold">${z.locationId?.name || '-'}</div>
-          <div class="text-body-sm text-on-surface-variant">${z.name} (Lantai: ${z.floor_level})</div>
+          <div class="text-title-sm font-bold">${z.locationId?.name || '<Gedung Dihapus>'}</div>
+          <div class="text-body-sm text-on-surface-variant">${z.name} <span class="bg-surface-variant px-1 rounded text-xs ml-1">${z.floor_level}</span></div>
         </td>
         <td class="p-4 text-center">
-          <span class="${available > 0 ? 'bg-primary-container text-on-primary-container' : 'bg-error-container text-on-error-container'} px-3 py-1.5 rounded-full font-bold text-sm">
+          <span class="${available > 0 ? 'bg-primary-container text-on-primary-container' : 'bg-error-container text-on-error-container'} px-3 py-1 rounded-full font-bold text-sm">
             ${available} / ${z.total_capacity}
           </span>
         </td>
         <td class="p-4 text-right">
-          <span class="font-mono text-body-lg">Rp${(z.price_per_hour || 0).toLocaleString('id-ID')}</span>
+          <span class="font-mono font-bold">Rp${(z.price_per_hour || 0).toLocaleString('id-ID')}</span>
         </td>
-        <td class="p-4 text-right space-x-2">
-          <button onclick="editZone('${z._id}')" class="bg-surface-container-high hover:bg-surface-variant text-on-surface px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">
-            Ubah
-          </button>
-          <button onclick="overrideZone('${z._id}')" ${z.total_capacity === 0 ? 'disabled' : ''} class="${z.total_capacity === 0 ? 'bg-surface-variant text-on-surface-variant cursor-not-allowed' : 'bg-error hover:bg-error/90 text-white active:scale-95'} px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">
-            Tutup Paksa
-          </button>
+        <td class="p-4 text-right space-x-1">
+          <button onclick="editZone('${z._id}')" class="bg-surface-container-high hover:bg-surface-variant text-on-surface px-2 py-1.5 font-bold rounded-lg text-xs transition-all shadow-sm">Ubah</button>
+          <button onclick="overrideZone('${z._id}')" class="bg-error hover:bg-error/90 text-white px-2 py-1.5 font-bold rounded-lg text-xs transition-all shadow-sm">Tutup</button>
+          <button onclick="deleteZone('${z._id}')" class="bg-error-container hover:bg-error hover:text-white text-error px-2 py-1.5 font-bold rounded-lg text-xs transition-all shadow-sm">Hapus</button>
         </td>
       </tr>
     `;
   });
+  if(!html) html = '<tr><td colspan="4" class="text-center py-8 text-on-surface-variant">Belum ada zona.</td></tr>';
   document.getElementById('zones-table-body').innerHTML = html;
 }
 
-function editZone(zoneId) {
-  const z = zonesData.find(x => x._id === zoneId);
-  if(!z) return;
-  const row = document.getElementById('row-' + zoneId);
-  row.innerHTML = `
-    <td class="p-4">
-      <div class="text-body-lg font-bold">${z.locationId?.name || '-'}</div>
-      <div class="text-body-sm text-on-surface-variant">${z.name}</div>
-    </td>
-    <td class="p-4 text-center">
-      <input type="number" id="edit-cap-${z._id}" value="${z.total_capacity}" class="w-20 px-2 py-1 border border-outline-variant rounded-md text-center bg-white" min="0">
-    </td>
-    <td class="p-4 text-right">
-      Rp <input type="number" id="edit-price-${z._id}" value="${z.price_per_hour || 0}" class="w-28 px-2 py-1 border border-outline-variant rounded-md text-right bg-white" min="0">
-    </td>
-    <td class="p-4 text-right space-x-2">
-      <button onclick="saveZone('${z._id}')" class="bg-primary hover:bg-primary/90 text-white px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">Simpan</button>
-      <button onclick="renderZones()" class="bg-surface-variant hover:bg-surface-container-high text-on-surface-variant px-3 py-2 font-bold rounded-lg text-sm transition-all shadow-sm">Batal</button>
-    </td>
-  `;
-}
-
-async function saveZone(zoneId) {
-  const cap = document.getElementById('edit-cap-'+zoneId).value;
-  const price = document.getElementById('edit-price-'+zoneId).value;
-  try {
-    await axios.put('/api/admin/zones/' + zoneId, { total_capacity: cap, price_per_hour: price });
-    loadDashboard();
-  } catch(e) {
-    alert("Gagal menyimpan data zona.");
-  }
-}
-
-async function overrideZone(zoneId) {
-  if(confirm("PERINGATAN: Aksi ini akan mengubah kapasitas total zona ini menjadi 0 (menutup area dari pesanan baru selamanya). Anda yakin?")) {
-    try {
-      await axios.post('/api/admin/zones/' + zoneId + '/override');
-      loadDashboard();
-    } catch(e) {
-      alert("Gagal melakukan override.");
-    }
-  }
-}
-
+// ================= CRUD ACTIONS =================
 async function createLocation() {
   const data = {
     name: document.getElementById('loc-name').value,
@@ -191,16 +270,52 @@ async function createLocation() {
     lng: document.getElementById('loc-lng').value,
     radius_meters: document.getElementById('loc-radius').value || 5000
   };
-  if(!data.name || !data.address || !data.lat || !data.lng) return alert("Harap isi semua kolom wajib!");
-  
+  if(!data.name || !data.lat || !data.lng) return alert("Nama dan Koordinat wajib diisi!");
   try {
     await axios.post('/api/admin/locations', data);
-    alert("Gedung berhasil ditambahkan!");
-    // Clear inputs
     ['loc-name', 'loc-address', 'loc-lat', 'loc-lng', 'loc-radius'].forEach(id => document.getElementById(id).value = '');
-    loadLocationsForDropdown(); // Refresh dropdown
-  } catch(e) {
-    alert("Gagal menyimpan gedung.");
+    loadLocations();
+  } catch(e) { alert("Gagal menyimpan gedung."); }
+}
+
+function editLocation(id) {
+  const loc = locationsData.find(x => x._id === id);
+  if(!loc) return;
+  const row = document.getElementById('row-loc-' + id);
+  row.innerHTML = `
+    <td class="p-4 space-y-2">
+      <input type="text" id="el-name-${id}" value="${loc.name}" class="w-full px-2 py-1 border rounded text-sm">
+      <input type="text" id="el-addr-${id}" value="${loc.address}" class="w-full px-2 py-1 border rounded text-sm">
+    </td>
+    <td class="p-4">
+      <label class="text-xs text-on-surface-variant">Radius (m):</label>
+      <input type="number" id="el-rad-${id}" value="${loc.radius_meters}" class="w-24 px-2 py-1 border rounded text-sm">
+    </td>
+    <td class="p-4 text-right space-x-1">
+      <button onclick="saveLocation('${id}')" class="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 font-bold rounded-lg text-sm">Simpan</button>
+      <button onclick="renderLocations()" class="bg-surface-variant text-on-surface-variant px-3 py-1.5 font-bold rounded-lg text-sm">Batal</button>
+    </td>
+  `;
+}
+
+async function saveLocation(id) {
+  try {
+    await axios.put('/api/admin/locations/' + id, {
+      name: document.getElementById('el-name-'+id).value,
+      address: document.getElementById('el-addr-'+id).value,
+      radius_meters: document.getElementById('el-rad-'+id).value
+    });
+    loadLocations();
+  } catch(e) { alert("Gagal menyimpan."); }
+}
+
+async function deleteLocation(id) {
+  if(confirm("Yakin hapus Gedung ini? Semua Zona di dalamnya juga akan ikut Terdestroy permanen!")) {
+    try {
+      await axios.delete('/api/admin/locations/' + id);
+      loadLocations();
+      if(document.getElementById('tab-zones').classList.contains('hidden') === false) loadZones();
+    } catch(e) { alert("Gagal menghapus."); }
   }
 }
 
@@ -212,21 +327,67 @@ async function createZone() {
     total_capacity: document.getElementById('zone-cap').value,
     price_per_hour: document.getElementById('zone-price').value
   };
-  if(!data.locationId || !data.name || !data.total_capacity || !data.price_per_hour) return alert("Harap isi semua kolom!");
-
+  if(!data.locationId || !data.name) return alert("Pilih Gedung dan Nama Zona!");
   try {
     await axios.post('/api/admin/zones', data);
-    alert("Zona berhasil ditambahkan!");
-    // Clear inputs
     ['zone-name', 'zone-floor', 'zone-cap', 'zone-price'].forEach(id => document.getElementById(id).value = '');
-    loadDashboard(); // Refresh table
-  } catch(e) {
-    alert("Gagal menyimpan zona.");
+    loadZones();
+  } catch(e) { alert("Gagal menyimpan zona."); }
+}
+
+function editZone(id) {
+  const z = zonesData.find(x => x._id === id);
+  if(!z) return;
+  const row = document.getElementById('row-zone-' + id);
+  row.innerHTML = `
+    <td class="p-4 text-xs font-bold">${z.locationId?.name || '-'}<br>${z.name}</td>
+    <td class="p-4 text-center">
+      <input type="number" id="ez-cap-${id}" value="${z.total_capacity}" class="w-16 px-2 py-1 border rounded text-center">
+    </td>
+    <td class="p-4 text-right">
+      <input type="number" id="ez-price-${id}" value="${z.price_per_hour||0}" class="w-24 px-2 py-1 border rounded text-right">
+    </td>
+    <td class="p-4 text-right space-x-1">
+      <button onclick="saveZone('${id}')" class="bg-primary hover:bg-primary/90 text-white px-3 py-1.5 font-bold rounded-lg text-sm">Simpan</button>
+      <button onclick="renderZones()" class="bg-surface-variant text-on-surface-variant px-3 py-1.5 font-bold rounded-lg text-sm">Batal</button>
+    </td>
+  `;
+}
+
+async function saveZone(id) {
+  try {
+    await axios.put('/api/admin/zones/' + id, {
+      total_capacity: document.getElementById('ez-cap-'+id).value,
+      price_per_hour: document.getElementById('ez-price-'+id).value
+    });
+    loadZones();
+  } catch(e) { alert("Gagal menyimpan."); }
+}
+
+async function deleteZone(id) {
+  if(confirm("Yakin menghapus Zona ini secara permanen?")) {
+    try {
+      await axios.delete('/api/admin/zones/' + id);
+      loadZones();
+    } catch(e) { alert("Gagal menghapus."); }
   }
 }
 
-loadLocationsForDropdown();
-loadDashboard();
-setInterval(loadDashboard, 10000);
+async function overrideZone(id) {
+  if(confirm("Tutup paksa area ini? Kapasitas akan jadi 0.")) {
+    try {
+      await axios.post('/api/admin/zones/' + id + '/override');
+      loadZones();
+    } catch(e) { alert("Gagal menutup zona."); }
+  }
+}
+
+// ================= INITIALIZATION =================
+loadStats();
+pollingInterval = setInterval(() => {
+  if(!document.getElementById('tab-home').classList.contains('hidden')) loadStats();
+}, 10000);
+
 </script>
-<%- include('../partials/footer') %>
+</body>
+</html>
