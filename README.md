@@ -2,7 +2,7 @@
 
 NyewaParkiran adalah sistem reservasi lahan parkir berbasis kapasitas wilayah (Zona), bukan berbasis slot fisik. Sistem ini dirancang sebagai solusi perangkat lunak (*software-only*) tanpa memerlukan integrasi perangkat keras (IoT) tambahan di lapangan.
 
-Aplikasi ini mengutamakan **Penemuan Tanpa Gesekan (*Zero-Friction Discovery*)** dan **Otentikasi Malas (*Lazy Auth*)**, di mana pengguna tidak perlu mendaftar akun di awal.
+Aplikasi ini mengutamakan **(*Zero-Friction Discovery*)** dan **(*Lazy Auth*)**, di mana pengguna tidak perlu mendaftar akun di awal.
 
 ## Fitur
 
